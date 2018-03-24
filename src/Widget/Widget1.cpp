@@ -71,6 +71,7 @@ void Widget::OnProcessMsg(QString Text)
             emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + TmpString);
 
             ResetRoundTimer();
+            DisplayRoundTime();
         }
         else if (Enum2String == UNDOCHESS_ENUM)
         {
@@ -95,8 +96,8 @@ void Widget::OnProcessMsg(QString Text)
             GetDrawChessMsg(TextString);
         else if (Enum2String == GAMEPASS_ENUM)
         {
-            ExchangeTurnPlayerStatus();
             ResetRoundTimer();
+            ExchangeTurnPlayerStatus();
         }
     }
 }
@@ -117,7 +118,6 @@ Client的定时器如果时间到了，那么什么也不做，必须等待Serve
         才能轮换棋方（在这一步里，轮换棋方的相关操作在OnProcessMsg()里）
 Server的定时器如果时间到了，则会发送相应的信息，让Client结束本回合，并轮换棋方
 */
-
     //如果此时是玩家1的回合
     if (TurnPlayerStatus == Player1Status)
     {
@@ -131,47 +131,36 @@ Server的定时器如果时间到了，则会发送相应的信息，让Client�
         }
         else if (RoundTimeCount > 10)
             RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
-        //如果超时，则pass到下一个玩家里去
-        else if (RoundTimeCount <= 0)
+        //如果在人机模式中超时，则pass到下一个玩家里去
+        else if (PlayingModeStatus == MODE_PVE && RoundTimeCount <= 0)
         {
-            //作为服务器的福利，自己的定时器在整场比赛中为主要的
-            /*if (PlayingModeStatus == MODE_PVE)
-            {
-                //重置选中的棋子，把选择棋子的痕迹抹去
-                ChooseChessX = 0;
-                ChooseChessY = 0;
-                update();
+            //重置选中的棋子，把选择棋子的痕迹抹去
+            ChooseChessX = 0;
+            ChooseChessY = 0;
+            update();
 
-                ExchangeTurnPlayerStatus();
-                ResetRoundTimer();
-            }
-            else */if (PlayingModeStatus == MODE_PVP &&
-                    networkModule->NetworkStatus == NetworkModule::NETWORK_SERVER_CONNECT)
-            {
-                ExchangeTurnPlayerStatus();
-                ResetRoundTimer();
-                emit InProcessMsg(QString(TOONLINE_ENUM) + QString(GAMEPASS_ENUM));
-            }
-
+            ResetRoundTimer();
+            ExchangeTurnPlayerStatus();
         }
     }
     //如果是玩家2的回合
     else if (TurnPlayerStatus == Player2Status)
     {
         RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#808080}");
-
         //在人机模式下，根本就不需要考虑人机超时
         //60s够它算N遍的了
-        //作为服务器的福利，自己的定时器在整场比赛中为主要的
-        if (PlayingModeStatus == MODE_PVP && RoundTimeCount <= 0 &&
-                networkModule->NetworkStatus == NetworkModule::NETWORK_SERVER_CONNECT)
-        {
-            ExchangeTurnPlayerStatus();
-            ResetRoundTimer();
-            emit InProcessMsg(QString(TOONLINE_ENUM) + QString(GAMEPASS_ENUM));
-        }
-
     }
+
+    //在联机模式中，定时器的超时事件
+    //作为服务器的福利，自己的定时器在整场比赛中为主要的
+    if (PlayingModeStatus == MODE_PVP && RoundTimeCount <= 0 &&
+            networkModule->NetworkStatus == NetworkModule::NETWORK_SERVER_CONNECT)
+    {
+        ResetRoundTimer();
+        ExchangeTurnPlayerStatus();
+        emit InProcessMsg(QString(TOONLINE_ENUM) + QString(GAMEPASS_ENUM));
+    }
+
     RoundTimeLabel->setText(QString("%1\n %2s").arg(tr("RoundTime")).arg(RoundTimeCount));
 }
 
@@ -212,7 +201,7 @@ void Widget::BeforePlayGame(void)
     DisplayRoundTime();
 
     //设置按钮菜单的相关Action
-    Action1->setText(tr("悔棋"));
+    Action1->setText(tr("唯一的悔棋机会"));
     Action2->setText(tr("和棋"));
     Action3->setText(tr("认输"));
     Button->setText(tr("游戏选项"));
@@ -252,12 +241,12 @@ void Widget::BeforePlayGame(void)
         //如果是人机模式
         if (PlayingModeStatus == MODE_PVE)
         {
-            TmpString = tr("[系统提示]开始人机对战！");
+            TmpString = tr("[系统提示]开始人机对战V1.0！");
             emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + TmpString);
             TmpString = tr("[系统提示]你是") + (Player1Status == PLAYER_BLACK? tr("黑方") : tr("白方"));
             emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + TmpString);
             ResetRoundTimer();
-
+            DisplayRoundTime();
             if (Player2Status == TurnPlayerStatus)
                 Player2PutChess(nullptr);
         }
@@ -273,6 +262,7 @@ void Widget::BeforePlayGame(void)
             emit InProcessMsg(QString(TOONLINE_ENUM) + QString(YOURCHESSCOLOR_ENUM) + TmpString);
 
             ResetRoundTimer();
+            DisplayRoundTime();
         }
     }
 }
@@ -297,16 +287,15 @@ void Widget::OnMode_PVE(void)
 void Widget::ExchangeTurnPlayerStatus(void)
 {
     if (TurnPlayerStatus == Player1Status)
-    {
         TurnPlayerStatus = Player2Status;
-        //当轮换完棋方后，轮到的为Player2则调用机器算法下棋
-        if (PlayingModeStatus == MODE_PVE)
-            Player2PutChess(nullptr);
-    }
     else if (TurnPlayerStatus == Player2Status)
-    {
         TurnPlayerStatus = Player1Status;
-    }
+    //刷新回合时间显示
+    DisplayRoundTime();
+
+    //当轮换完棋方后，轮到的为Player2则调用机器算法下棋
+    if (TurnPlayerStatus == Player2Status && PlayingModeStatus == MODE_PVE)
+        Player2PutChess(nullptr);
 }
 
 //重置回合时间
@@ -317,5 +306,5 @@ void Widget::ResetRoundTimer(void)
     //开始新的周期，需要停止以前的周期
     RoundTimer->stop();
     RoundTimer->start(1000);
-    DisplayRoundTime();
+    //DisplayRoundTime();
 }
