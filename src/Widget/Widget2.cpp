@@ -164,49 +164,68 @@ void Widget::OnCheckWin(bool Status)
 {
 /*
     Status 的意思是状态，这里只的是调用OnCheckWin的方式
-    True表示的是每次下棋后的正常调用(正常调用)
-    False指的是使用这个参数的人认输了(不正常调用)
+    true表示的是每次下棋后的正常调用(正常调用)
+    false指的是使用这个参数的人认输了(不正常调用)
 
-    6_6之所以弄了这个bool是想直接和那个按钮的信号所发出来的False对应（好吧，实际上发出来的是0，对应False）
+    6_6之所以弄了这个bool是想直接和那个按钮的信号所发出来的false对应（好吧，实际上发出来的是0，对应false）
 */
     if (Status)
     {
-        int WinCount = 0;//成列的棋数
-        int tmpI;
-        int tmpJ;
+        //连成的棋子数
+        int WinCount;
 
         //检查所下最后一颗棋子有没有连成五子
-        //理论上这两个if是必须成立的，除非发生错误
-        //这两个if只是起保险作用
         if (!BePutChess->isEmpty())
         {
-            int TmpRow = (BePutChess->last().x() - ChessCanvasStartX) / ChessLineWidth;
-            int TmpColumn = (BePutChess->last().y() - ChessCanvasStartY) / ChessLineWidth;
-            if (ChessPosition[TmpRow][TmpColumn] == TurnPlayerStatus)
+            int LastChessRow = (BePutChess->last().x() - ChessCanvasStartX) / ChessLineWidth;
+            int LastChessColumn = (BePutChess->last().y() - ChessCanvasStartY) / ChessLineWidth;
+            //为了保险而加的if
+            if (ChessPosition[LastChessRow][LastChessColumn] == TurnPlayerStatus)
             {
-                //遍历下的最后一颗棋子的八个方向
+                //遍历下的最后一颗棋子的4个方向
                 for (int a = -1; a <= 1; a++)
                 {
-                    for (int b = -1; b <= 1; b++)
+                    for (int b = -1; b <= 0; b++)
                     {
-                        //排除遍历到中心方向的可能
-                        //一旦遍历到此中心方向，结局就是死循环
-                        if(a == 0 && b == 0)
+                        //这个if判断与上面的两个嵌套for循环搭配
+                        //使得只能遍历4个方向
+                        //再不懂就画图自己看
+                        if(b == 0 && (a == 0 || a == 1))
                             continue;
 
-                        tmpI = TmpRow;
-                        tmpJ = TmpColumn;
-                        WinCount = 0;
-                        while (ChessPosition[tmpI][tmpJ] == TurnPlayerStatus)
+                        //之所以设置为1而不是为0
+                        //是因为这个1代表的是最初的棋子，也就是下的最后一颗棋子
+                        WinCount = 1;
+
+                        //分别向两个方向遍历
+                        int TmpRow = 0;
+                        int TmpColumn = 0;
+
+                        for (int Direct = -1; Direct <= 1; Direct++)
                         {
-                            //向此方向继续遍历
-                            tmpI += a;
-                            tmpJ += b;
-                            //连成的棋子数+1
-                            WinCount++;
-                            //如果越界，退出
-                            if (tmpI < 0 || tmpJ < 0 || tmpI >= ChessLines || tmpJ >= ChessLines)
-                                break;
+                            if(Direct != 0)
+                            {
+                                //设置当前遍历的位置为最后一颗下的棋子的行列
+                                TmpRow = LastChessRow;
+                                TmpColumn = LastChessColumn;
+
+                                while(true)
+                                {
+                                    //向遍历方向推进一个
+                                    TmpRow += a * Direct;
+                                    TmpColumn += b * Direct;
+
+                                    //如果越界，退出
+                                    if (TmpRow < 0 || TmpColumn < 0 || TmpRow >= ChessLines || TmpColumn >= ChessLines)
+                                        break;
+                                    //如果为自己的棋子，则棋数+1
+                                    if (ChessPosition[TmpRow][TmpColumn] == TurnPlayerStatus)
+                                        WinCount++;
+                                    //否则，退出此循环
+                                    else
+                                        break;
+                                }
+                           }
                         }
                         if (WinCount >= 5)
                             break;
@@ -235,16 +254,13 @@ void Widget::OnCheckWin(bool Status)
                 RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
                 RoundTimeLabel->setText(tr("NONE"));
             }
-
             //只要进入这个if,肯定都是要结束游戏
             AfterPlayGame();
-
-            //break;
         }
         else//否则
         {
-            ExchangeTurnPlayerStatus();
             ResetRoundTimer();
+            ExchangeTurnPlayerStatus();
         }
     }
     else if (!Status)
