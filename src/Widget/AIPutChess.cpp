@@ -96,13 +96,13 @@ QPoint Widget::ComputerPutChess(void)
                 //注意：设置这些比率的首要条件是2 * ChessUpLevelRate > DeadChessRate
 
                 //活棋和死棋直接的比例
-                float DeadChessRate = 0.75;
+                float DeadChessRate = 0.7;
                 //主棋组设置的权值和副棋组设置的比例
-                float SecondaryGroupChessRate = 0.4;
+                float SecondaryGroupChessRate = 0.5;
                 //每种活棋之间的比例
                 float ChessUpLevelRate = 0.4;
                 //考虑AI优先的额外权值
-                float AIFirstScore = 3;
+                float AIFirstScore = 5;
 
                 //限制了一半的方向
                 //因为要在一个位置上判断两个方向
@@ -125,16 +125,16 @@ QPoint Widget::ComputerPutChess(void)
 
                         //初始化一系列的棋子权值
                         int LiveOneChessScore = 1000;
-                        int DeadOneChessScore = LiveOneChessScore * DeadChessRate; //750
+                        int DeadOneChessScore = LiveOneChessScore * DeadChessRate;
 
-                        int LiveTwoChessScore = LiveOneChessScore / ChessUpLevelRate;//2500
-                        int DeadTwoChessScore = LiveTwoChessScore * DeadChessRate;//1875
+                        int LiveTwoChessScore = LiveOneChessScore / ChessUpLevelRate;
+                        int DeadTwoChessScore = LiveTwoChessScore * DeadChessRate;
 
-                        int LiveThreeChessScore = LiveTwoChessScore / ChessUpLevelRate;//6250
-                        int DeadThreeChessScore = LiveThreeChessScore * DeadChessRate;//4687
+                        int LiveThreeChessScore = LiveTwoChessScore / ChessUpLevelRate;
+                        int DeadThreeChessScore = LiveThreeChessScore * DeadChessRate;
 
                         //无论遇见的是活的还是死的四子，只要下了就准赢，所以不考虑四子的状态
-                        int AllFourChessScore = LiveThreeChessScore / ChessUpLevelRate;//15625
+                        int AllFourChessScore = LiveThreeChessScore / ChessUpLevelRate;
 
                         //在一个方向里反向遍历另外一个方向
                         //Direct == -1时的方向是Direct == 1的反方向
@@ -182,30 +182,28 @@ QPoint Widget::ComputerPutChess(void)
                                 //如果当前方向的第一个位置是活的，就表明有副棋组的存在
                                 if (SecondaryGroupStartIsLive)
                                 {
-                                    if (SecondaryGroupChessCount > 0 && BePutChess->count() > 1 && X == 5 && Y == 5 && (MyStatus == Player1Status || MyStatus == Player2Status))
-                                        qDebug();
                                     switch(SecondaryGroupChessCount)
                                     {
                                     case 1:
                                         if (SecondaryGroupEndIsLive)
-                                            PositionScore[X][Y] += LiveOneChessScore * SecondaryGroupChessRate;//400
+                                            PositionScore[X][Y] += LiveOneChessScore * SecondaryGroupChessRate;
                                         else
-                                            PositionScore[X][Y] += DeadOneChessScore * SecondaryGroupChessRate;//300
+                                            PositionScore[X][Y] += DeadOneChessScore * SecondaryGroupChessRate;
                                         break;
                                     case 2:
                                         if (SecondaryGroupEndIsLive)
-                                            PositionScore[X][Y] += LiveTwoChessScore * SecondaryGroupChessRate;//1000
+                                            PositionScore[X][Y] += LiveTwoChessScore * SecondaryGroupChessRate;
                                         else
-                                            PositionScore[X][Y] += DeadTwoChessScore * SecondaryGroupChessRate;//750
+                                            PositionScore[X][Y] += DeadTwoChessScore * SecondaryGroupChessRate;
                                         break;
                                     case 3:
                                         if (SecondaryGroupEndIsLive)
-                                            PositionScore[X][Y] += LiveThreeChessScore * SecondaryGroupChessRate;//2500
+                                            PositionScore[X][Y] += LiveThreeChessScore * SecondaryGroupChessRate;
                                         else
-                                            PositionScore[X][Y] += DeadThreeChessScore * SecondaryGroupChessRate;//1874(1875)
+                                            PositionScore[X][Y] += DeadThreeChessScore * SecondaryGroupChessRate;
                                         break;
                                     case 4:
-                                        PositionScore[X][Y] += AllFourChessScore * SecondaryGroupChessRate;//15625
+                                        PositionScore[X][Y] += AllFourChessScore * SecondaryGroupChessRate;
                                         break;
                                     }
 
@@ -225,21 +223,21 @@ QPoint Widget::ComputerPutChess(void)
                             {
                             case 1:
                                 if (MajorGroupStartIsLive && MajorGroupEndIsLive)
-                                    PositionScore[X][Y] += LiveOneChessScore;//1000
+                                    PositionScore[X][Y] += LiveOneChessScore;
                                 else if (MajorGroupStartIsLive || MajorGroupEndIsLive)
-                                    PositionScore[X][Y] += DeadOneChessScore;//750
+                                    PositionScore[X][Y] += DeadOneChessScore;
                                 break;
                             case 2:
                                 if (MajorGroupStartIsLive && MajorGroupEndIsLive)
-                                    PositionScore[X][Y] += LiveTwoChessScore;//2500
+                                    PositionScore[X][Y] += LiveTwoChessScore;
                                 else if (MajorGroupStartIsLive || MajorGroupEndIsLive)
-                                    PositionScore[X][Y] += DeadTwoChessScore;//1875
+                                    PositionScore[X][Y] += DeadTwoChessScore;
                                 break;
                             case 3:
                                 if (MajorGroupStartIsLive && MajorGroupEndIsLive)
-                                    PositionScore[X][Y] += LiveThreeChessScore;//6250
+                                    PositionScore[X][Y] += LiveThreeChessScore;
                                 else if (MajorGroupStartIsLive || MajorGroupEndIsLive)
-                                    PositionScore[X][Y] += DeadThreeChessScore;//4687
+                                    PositionScore[X][Y] += DeadThreeChessScore;
                                 break;
                             case 4:
                                 PositionScore[X][Y] += AllFourChessScore;//15625
