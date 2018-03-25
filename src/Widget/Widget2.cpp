@@ -169,7 +169,7 @@ void Widget::OnCheckWin(bool Status)
     if (Status)
     {
         //连成的棋子数
-        int WinCount;
+        int WinCount = 0;
 
         //检查所下最后一颗棋子有没有连成五子
         if (!BePutChess->isEmpty())
