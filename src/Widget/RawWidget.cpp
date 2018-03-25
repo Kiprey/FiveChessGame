@@ -66,15 +66,16 @@ Widget::Widget(QWidget *parent) :
     ChessCanvasEndY = ChessCanvasStartY + ChessCanvasSideLength - ChessLineWidth;
     SmallBlackPointWidth = 6;
 
-    //给指向落子点状态的指针分配空间
-    ChessPosition = new char* [ChessLines];
+    //给指向落子点状态的列表初始化
     for(int i = 0; i < ChessLines; i++)
-        ChessPosition[i]= new char[ChessLines];
+    {
+        QList<PlayerState> TmpQList;
+        for(int j = 0; j < ChessLines; j++)
+            TmpQList.append(PLAYER_NONE);
 
-    //给所有落子点的状态初始化
-    for(int i = 0; i < ChessLines; i++)
-        for (int k = 0; k < ChessLines; k++)
-            ChessPosition[i][k] = PLAYER_NONE;
+        ChessPosition.append(TmpQList);
+    }
+
  /*********************初始化结束*********************/
     //设置窗口大小
     resize(Geometry_X, Geometry_Y);
@@ -132,8 +133,9 @@ Widget::Widget(QWidget *parent) :
     Button->setText(tr("开始游戏"));
 
     //连接相关槽函数
-    connect(TextEdit, SIGNAL(InProcessMsg(QString)), this, SLOT(OnProcessMsg(QString)));
-    connect(this, SIGNAL(InProcessMsg(QString)), this, SLOT(OnProcessMsg(QString)));
+    connect(TextEdit, SIGNAL(InToLocalMsg(QString)), this, SLOT(OnToLocalMsg(QString)));
+    connect(this, SIGNAL(InToLocalMsg(QString)), this, SLOT(OnToLocalMsg(QString)));
+    connect(this, SIGNAL(InToNetworkMsg(QString)), this, SLOT(OnToNetworkMsg(QString)));
     connect(TotalTimer, SIGNAL(timeout(void)), this, SLOT(OnDisplayAndChangeTotalTime(void)));
     connect(RoundTimer, SIGNAL(timeout(void)), this, SLOT(OnChangeRoundTime(void)));
 
@@ -143,7 +145,7 @@ Widget::Widget(QWidget *parent) :
     connect(networkModule, SIGNAL(InAppendLog(QString)), OnlineOption, SLOT(OnAppendLog(QString)));
     connect(networkModule, SIGNAL(InStartGame(void)), OnlineOption, SLOT(OnHideWidget(void)));
     connect(networkModule, SIGNAL(InStartGame(void)), this, SLOT(OnMode_PVP(void)));
-    connect(networkModule, SIGNAL(InProcessMsg(QString)), this, SLOT(OnProcessMsg(QString)));
+    connect(networkModule, SIGNAL(InFromNetworkMsg(QString)), this, SLOT(OnFromNetworkMsg(QString)));
     connect(networkModule, SIGNAL(InDisconnected(void)), this, SLOT(OnDisconnected(void)));
 }
 
@@ -166,11 +168,6 @@ Widget::~Widget()
     delete Action1;
     delete Action2;
     delete Action3;
-
-    for(int i = 0; i < ChessLines; i++)
-        delete[] ChessPosition[i];
-
-    delete[] ChessPosition;
 
     delete ui;
 }
@@ -379,7 +376,7 @@ void Widget::mouseReleaseEvent(QMouseEvent *)
             QString Column = QString::number(TmpColumn, 10);
             if (Column.length() < 2)
                 Column = '0' + Column; //使数字变成两位数，如：02 12
-            emit InProcessMsg(QString(TOONLINE_ENUM) + QString(CHESSPOSITION_ENUM) + Row + Column);
+            emit InToNetworkMsg(QString(CHESSPOSITION_ENUM) + Row + Column);
         }
         update();
         OnCheckWin(true);

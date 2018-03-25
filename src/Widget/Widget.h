@@ -22,7 +22,6 @@
 #include <QPoint>
 
 #include <ctime>    //初始化随机数用
-#include <cmath>    //乘积用
 #include "MsgEnums.h"
 #include "MsgTextEdit/MsgTextEdit.h"
 #include "OnlineOptionWidget/OnlineOptionWidget.h"
@@ -41,8 +40,12 @@ public:
     ~Widget();
 
 private slots:
-    //处理所有到来的消息
-    void OnProcessMsg(QString);
+    //处理从程序内部来的消息
+    void OnToLocalMsg(QString);
+    //发送消息到联机玩家
+    void OnToNetworkMsg(QString);
+    //处理从联机玩家来的消息
+    void OnFromNetworkMsg(QString);
     //回合时间的更改
     void OnChangeRoundTime(void);
     //总时间的显示与更改
@@ -65,13 +68,11 @@ private slots:
     void About(void);
 
 signals:
-    void InProcessMsg(QString);
+    void InToLocalMsg(QString);
+    void InToNetworkMsg(QString);
 
 private:
     /***********棋盘上的函数与棋子***********/
-    //棋盘上落子点的状态(棋盘上下棋的地方下的是黑，白，还是空）
-    char **ChessPosition;
-
     void paintEvent(QPaintEvent *);
     void mouseMoveEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
@@ -121,6 +122,9 @@ private:
     PlayerState Player2Status;
     //轮到的棋方
     PlayerState TurnPlayerStatus;
+
+    //棋盘上落子点的状态(棋盘上下棋的地方下的是黑，白，还是空）
+    QList<QList<PlayerState>> ChessPosition;
 
     //选中的棋子的XY
     int ChooseChessX;

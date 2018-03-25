@@ -1,104 +1,110 @@
 #include "Widget.h"
 #include "ui_widget.h"
 
-//这是个比较重要的函数，几乎所有的信息都会有这个函数处理
+//这三个函数是个比较重要的函数，几乎所有的信息都会被这三个函数处理
 //包括，发送到本机的消息，发送到网络的消息，以及显示消息等等
 //与这个函数结合很紧密的是头文件MsgEnums.h
-void Widget::OnProcessMsg(QString Text)
+
+//程序内部的消息处理
+void Widget::OnToLocalMsg(QString Text)
 {
     //将Text切片
-    QString Enum1String = Text.mid(0, ENUM_SIZE);
-    QString Enum2String = Text.mid(ENUM_SIZE, ENUM_SIZE);
-    QString TextString = Text.mid(2 * ENUM_SIZE, -1);
+    QString EnumString = Text.mid(0, ENUM_SIZE);
+    QString TextString = Text.mid(ENUM_SIZE, -1);
 
-    if (Enum1String == TOLOCAL_ENUM)
+    if (EnumString == PLAYERMSG_ENUM)
     {
-        if (Enum2String == PLAYERMSG_ENUM)
+        if (TextString == tr("#clear"))
+            TextBrowser->clear();
+        else
         {
-            if (TextString == tr("#clear"))
-                TextBrowser->clear();
+            //如果是联机对战
+            if (PlayingModeStatus == MODE_PVP)
+            {
+                //显示文字在TextBrowser
+                TextBrowser->append(tr("[我]") + TextString);
+                //发送信息给对方
+                emit InToNetworkMsg(QString(PLAYERMSG_ENUM) + TextString);
+            }
             else
-            {
-                //如果是联机对战
-                if (PlayingModeStatus == MODE_PVP)
-                {
-                    //显示文字在TextBrowser
-                    TextBrowser->append(tr("[我]") + TextString);
-                    //发送信息给对方
-                    emit InProcessMsg(QString(TOONLINE_ENUM) + QString(PLAYERMSG_ENUM) + TextString);
-                }
-                else
-                    emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]未进行联机对战，无法发送信息！"));
-            }
-        }
-        else if (Enum2String == SYSMSG_ENUM)
-        {
-            //使字符串以红色显示的CSS代码
-            QString RedString = "<font color=red>%1</font>";
-            RedString = RedString.arg(TextString);
-            TextBrowser->append(RedString);
+                emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]未进行联机对战，无法发送信息！"));
         }
     }
-    else if (Enum1String == TOONLINE_ENUM)
+    else if (EnumString == SYSMSG_ENUM)
     {
-        if (networkModule->NetworkStatus == NetworkModule::NETWORK_SERVER_CONNECT)
-            networkModule->ServerMsgSend(Text);
-        else if (networkModule->NetworkStatus == NetworkModule::NETWORK_CLIENT)
-            networkModule->ClientMsgSend(Text);
+        //使字符串以红色显示的CSS代码
+        QString RedString = "<font color=red>%1</font>";
+        RedString = RedString.arg(TextString);
+        TextBrowser->append(RedString);
     }
-    else if (Enum1String == ONLINETOLOCAL_ENUM)
-    {
-        if(Enum2String == PLAYERMSG_ENUM)
-            TextBrowser->append(tr("[对方]") + TextString);
-        else if (Enum2String == YOURCHESSCOLOR_ENUM)
-        {
-            //这个Case只有客户端在游戏开始时才会执行一次，其他过程不会执行
-            if (TextString == "BLACK")
-            {
-                Player1Status = PLAYER_BLACK;
-                Player2Status = PLAYER_WHITE;
-                TurnPlayerStatus = Player1Status;
-            }
-            else if (TextString == "WHITE")
-            {
-                Player1Status = PLAYER_WHITE;
-                Player2Status = PLAYER_BLACK;
-                TurnPlayerStatus = Player2Status;
-            }
-            QString TmpString = tr("[系统提示]开始联机对战！");
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + TmpString);
-            TmpString = tr("[系统提示]你是") + (Player1Status == PLAYER_BLACK? tr("黑方") : tr("白方"));
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + TmpString);
+}
 
-            ResetRoundTimer();
-            DisplayRoundTime();
-        }
-        else if (Enum2String == UNDOCHESS_ENUM)
+//发送消息到联机玩家
+void Widget::OnToNetworkMsg(QString Text)
+{
+    if (networkModule->NetworkStatus == NetworkModule::NETWORK_SERVER_CONNECT)
+        networkModule->ServerMsgSend(Text);
+    else if (networkModule->NetworkStatus == NetworkModule::NETWORK_CLIENT)
+        networkModule->ClientMsgSend(Text);
+}
+
+//从联机玩家那里接受消息
+void Widget::OnFromNetworkMsg(QString Text)
+{
+    //将Text切片
+    QString EnumString = Text.mid(0, ENUM_SIZE);
+    QString TextString = Text.mid(ENUM_SIZE, -1);
+
+    if(EnumString == PLAYERMSG_ENUM)
+        TextBrowser->append(tr("[对方]") + TextString);
+    else if (EnumString == YOURCHESSCOLOR_ENUM)
+    {
+        //这个Case只有客户端在游戏开始时才会执行一次，其他过程不会执行
+        if (TextString == "BLACK")
         {
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]对方悔棋了一次"));
-            CoreUndoChess();
-            update();
+            Player1Status = PLAYER_BLACK;
+            Player2Status = PLAYER_WHITE;
+            TurnPlayerStatus = Player1Status;
         }
-        else if (Enum2String == CHESSPOSITION_ENUM)
+        else if (TextString == "WHITE")
         {
-            Player2PutChess(TextString);
+            Player1Status = PLAYER_WHITE;
+            Player2Status = PLAYER_BLACK;
+            TurnPlayerStatus = Player2Status;
         }
-        else if (Enum2String == GAMEGIVEUP_ENUM)
-        {
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]对方认输了，游戏结束！！！")));
-            TotalTimeLabel->setText(tr("WINNER:"));
-            //接收方肯定是胜利者，故用Player1Status
-            RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
-            RoundTimeLabel->setText((Player1Status == PLAYER_BLACK? tr("BLACK") : tr("WHITE")));
-            AfterPlayGame();
-        }
-        else if (Enum2String == DRAWCHESS_ENUM)
-            GetDrawChessMsg(TextString);
-        else if (Enum2String == GAMEPASS_ENUM)
-        {
-            ResetRoundTimer();
-            ExchangeTurnPlayerStatus();
-        }
+        QString TmpString = tr("[系统提示]开始联机对战！");
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
+        TmpString = tr("[系统提示]你是") + (Player1Status == PLAYER_BLACK? tr("黑方") : tr("白方"));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
+
+        ResetRoundTimer();
+        DisplayRoundTime();
+    }
+    else if (EnumString == UNDOCHESS_ENUM)
+    {
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]对方悔棋了一次"));
+        CoreUndoChess();
+        update();
+    }
+    else if (EnumString == CHESSPOSITION_ENUM)
+    {
+        Player2PutChess(TextString);
+    }
+    else if (EnumString == GAMEGIVEUP_ENUM)
+    {
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]对方认输了，游戏结束！！！")));
+        TotalTimeLabel->setText(tr("WINNER:"));
+        //接收方肯定是胜利者，故用Player1Status
+        RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
+        RoundTimeLabel->setText((Player1Status == PLAYER_BLACK? tr("BLACK") : tr("WHITE")));
+        AfterPlayGame();
+    }
+    else if (EnumString == DRAWCHESS_ENUM)
+        GetDrawChessMsg(TextString);
+    else if (EnumString == GAMEPASS_ENUM)
+    {
+        ResetRoundTimer();
+        ExchangeTurnPlayerStatus();
     }
 }
 
@@ -115,7 +121,7 @@ void Widget::DisplayRoundTime(void)
 /*
 在联机对战中
 Client的定时器如果时间到了，那么什么也不做，必须等待Server发送过来的GamePass消息
-        才能轮换棋方（在这一步里，轮换棋方的相关操作在OnProcessMsg()里）
+        才能轮换棋方（在这一步里，轮换棋方的相关操作在OnFromNetworkMsg()里）
 Server的定时器如果时间到了，则会发送相应的信息，让Client结束本回合，并轮换棋方
 */
     //如果此时是玩家1的回合
@@ -158,7 +164,7 @@ Server的定时器如果时间到了，则会发送相应的信息，让Client�
     {
         ResetRoundTimer();
         ExchangeTurnPlayerStatus();
-        emit InProcessMsg(QString(TOONLINE_ENUM) + QString(GAMEPASS_ENUM));
+        emit InToNetworkMsg(QString(GAMEPASS_ENUM));
     }
 
     RoundTimeLabel->setText(QString("%1\n %2s").arg(tr("RoundTime")).arg(RoundTimeCount));
@@ -242,9 +248,9 @@ void Widget::BeforePlayGame(void)
         if (PlayingModeStatus == MODE_PVE)
         {
             TmpString = tr("[系统提示]开始人机对战V1.0！");
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + TmpString);
+            emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
             TmpString = tr("[系统提示]你是") + (Player1Status == PLAYER_BLACK? tr("黑方") : tr("白方"));
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + TmpString);
+            emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
             ResetRoundTimer();
             DisplayRoundTime();
             if (Player2Status == TurnPlayerStatus)
@@ -254,12 +260,12 @@ void Widget::BeforePlayGame(void)
         else
         {
             TmpString = tr("[系统提示]开始联机对战！");
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + TmpString);
+            emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
             TmpString = tr("[系统提示]你是") + (Player1Status == PLAYER_BLACK? tr("黑方") : tr("白方"));
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + TmpString);
+            emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
             //通知联机玩家它的棋子颜色
             TmpString = (Player2Status == PLAYER_BLACK? "BLACK" : "WHITE");
-            emit InProcessMsg(QString(TOONLINE_ENUM) + QString(YOURCHESSCOLOR_ENUM) + TmpString);
+            emit InToNetworkMsg(QString(YOURCHESSCOLOR_ENUM) + TmpString);
 
             ResetRoundTimer();
             DisplayRoundTime();
@@ -306,5 +312,4 @@ void Widget::ResetRoundTimer(void)
     //开始新的周期，需要停止以前的周期
     RoundTimer->stop();
     RoundTimer->start(1000);
-    //DisplayRoundTime();
 }

@@ -91,12 +91,7 @@ void NetworkModule::OnServerDisconnected(void)
 
 void NetworkModule::OnServerMsgReceive(void)
 {
-    ByteArray->clear();
-
-    //替换接收到的信息的第一个枚举
-    QString Msg = QString(ByteArray->append(PlayerSocket->readAll()));
-    QString TextString = Msg.mid(ENUM_SIZE, -1);
-    emit InProcessMsg(QString(ONLINETOLOCAL_ENUM) + TextString);
+    emit InFromNetworkMsg(PlayerSocket->readAll());
 }
 
 void NetworkModule::ServerMsgSend(QString Msg)
@@ -172,15 +167,7 @@ void NetworkModule::ClientMsgSend(QString Msg)
 
 void NetworkModule::OnClientMsgReceive(void)
 {
-    //接受数据
-    //1.服务器主动发送的数据
-    //2.客户端发送到服务器的数据，服务器回显回来证明连接正常
-
-    ByteArray->clear();
-     //替换接收到的信息的第一个枚举
-    QString Msg = QString(ByteArray->append(Client->readAll()));
-    QString TextString = Msg.mid(ENUM_SIZE, -1);
-    emit InProcessMsg(QString(ONLINETOLOCAL_ENUM) + TextString);
+    emit InFromNetworkMsg(Client->readAll());
 }
 
 void NetworkModule::OnCancelListenning(void)

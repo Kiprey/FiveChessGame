@@ -69,8 +69,6 @@ OnlineOptionWidget::OnlineOptionWidget(QWidget *parent) : QWidget(parent)
     connect(this, SIGNAL(InAppendLog(QString)), this, SLOT(OnAppendLog(QString)));
 
     emit InAppendLog(PLAYERMSG_ENUM + tr("如果您要创建对局，请点击左上的“创建”按钮,并将按钮上方标签显示的IP地址告知于您同内网的朋友（例如，连接同一个WiFi），以便连接您的对局"));
-    emit InAppendLog(SYSMSG_ENUM + tr("注意！！！"));
-    emit InAppendLog(SYSMSG_ENUM + tr("第一个连接至对局的将成为创建对局玩家的对手，后连接的将成为观战者，观战者们可以自由聊天，但聊天内容无法被对局者查看"));
     emit InAppendLog(PLAYERMSG_ENUM + QString("------------------------------------"));
 }
 

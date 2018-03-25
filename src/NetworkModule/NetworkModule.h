@@ -29,7 +29,7 @@ public:
 
     //当前网络状态
     enum NetworkState{NETWORK_NONE, NETWORK_SERVER_LISTEN, NETWORK_SERVER_CONNECT, NETWORK_CLIENT};
-    int NetworkStatus;
+    NetworkState NetworkStatus;
 
     //这2个函数会被Widget里直接调用
     //服务器发送数据到特定套接字
@@ -60,7 +60,7 @@ signals:
     //这个是对OnlineOptionWidget的信号
     void InAppendLog(QString Log);
     //这个是对Widget里的信号
-    void InProcessMsg(QString Log);
+    void InFromNetworkMsg(QString Log);
     //同Widget,当断开连接时会触发
     void InDisconnected(void);
 private slots:

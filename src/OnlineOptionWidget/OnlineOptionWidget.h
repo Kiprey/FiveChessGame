@@ -2,7 +2,6 @@
 #define ONLINEOPTIONWIDGET_H
 
 //这个子widget为在主界面点击联机对战时，选择创建对局和加入对局的一个窗口
-//详情可结合Widget.cpp中使用此类的代码理解
 
 #include <QWidget>
 #include <QTextBrowser>
@@ -26,8 +25,6 @@ public:
     explicit OnlineOptionWidget(QWidget *parent = 0);
     ~OnlineOptionWidget();
 private:
-    //NetworkModule * networkModule;
-
     QPushButton * ServerButton;
     QPushButton * ClientButton;
 

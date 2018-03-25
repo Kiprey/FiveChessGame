@@ -62,27 +62,27 @@ void Widget::GetDrawChessMsg(QString TextString)
         switch(MsgBox.exec())
         {
         case QMessageBox::Yes:
-            emit InProcessMsg(QString(TOONLINE_ENUM) + QString(DRAWCHESS_ENUM) + "Yes");
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！和局！")));
+            emit InToNetworkMsg(QString(DRAWCHESS_ENUM) + "Yes");
+            emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！和局！")));
             TotalTimeLabel->setText(tr("WINNER:"));
             RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
             RoundTimeLabel->setText(tr("NONE"));
             AfterPlayGame();
             break;
         case QMessageBox::No:
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]您拒绝了对方的和棋请求")));
-            emit InProcessMsg(QString(TOONLINE_ENUM) + QString(DRAWCHESS_ENUM) + "No");
+            emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]您拒绝了对方的和棋请求")));
+            emit InToNetworkMsg(QString(DRAWCHESS_ENUM) + "No");
             break;
         case QMessageBox::NoToAll:
-            emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]您拒绝了对方的所有和棋请求")));
-            emit InProcessMsg(QString(TOONLINE_ENUM) + QString(DRAWCHESS_ENUM) + "NoToAll");
+            emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]您拒绝了对方的所有和棋请求")));
+            emit InToNetworkMsg(QString(DRAWCHESS_ENUM) + "NoToAll");
             break;
         }
     }
     else if (TextString == "Yes")
     {
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]对方同意了您的和棋请求！"));
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！和局！")));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]对方同意了您的和棋请求！"));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！和局！")));
         TotalTimeLabel->setText(tr("WINNER:"));
         RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
         RoundTimeLabel->setText(tr("NONE"));
@@ -90,13 +90,13 @@ void Widget::GetDrawChessMsg(QString TextString)
     }
     else if (TextString == "No")
     {
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]对方拒绝了您的和棋请求！"));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]对方拒绝了您的和棋请求！"));
     }
     else if (TextString == "NoToAll")
     {
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]对方拒绝了您的") + "<font color=red>"
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]对方拒绝了您的") + "<font color=red>"
                           + tr("所有") + "</font>" + tr("和棋请求！"));
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]您将被禁止发送和局请求")));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]您将被禁止发送和局请求")));
         Action2->setDisabled(true);
     }
 }
@@ -106,7 +106,7 @@ void Widget::OnDisconnected(void)
 {
     if (TurnPlayerStatus != TURNPLAYER_NONE)
     {
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]网络连接断开，游戏结束！")));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏连接断开，游戏结束！")));
         TotalTimeLabel->setText(tr("WINNER:"));
         RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
         RoundTimeLabel->setText(tr("NONE"));
@@ -136,10 +136,7 @@ void Widget::AfterPlayGame(void)
     //TurnPlayerStatus的设置应放在if前面，不然取消监听时会触发OnDisconnected();
     TurnPlayerStatus = TURNPLAYER_NONE;
     if (PlayingModeStatus == MODE_PVP)
-    {
         networkModule->OnCancelListenning();
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]已断开游戏连接"));
-    }
     PlayingModeStatus = MODE_NONE;
 
     TotalTimer->stop();
@@ -241,7 +238,7 @@ void Widget::OnCheckWin(bool Status)
             //如果有人胜利
             if (WinCount >= 5)
             {
-                emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！！！")));
+                emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！！！")));
                 TotalTimeLabel->setText(tr("WINNER:"));
                 RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
                 RoundTimeLabel->setText((TurnPlayerStatus == PLAYER_BLACK? tr("BLACK") : tr("WHITE")));
@@ -249,7 +246,7 @@ void Widget::OnCheckWin(bool Status)
             //如果棋盘刚好满了，并且还没人胜利
             else
             {
-                emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！和局！")));
+                emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！和局！")));
                 TotalTimeLabel->setText(tr("WINNER:"));
                 RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
                 RoundTimeLabel->setText(tr("NONE"));
@@ -265,13 +262,13 @@ void Widget::OnCheckWin(bool Status)
     }
     else if (!Status)
     {
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！！")));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！！")));
         TotalTimeLabel->setText(tr("WINNER:"));
         RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
         //这里反转了一下
         RoundTimeLabel->setText((Player2Status == PLAYER_BLACK? tr("BLACK") : tr("WHITE")));
         if(PlayingModeStatus == MODE_PVP)
-            emit InProcessMsg(QString(TOONLINE_ENUM) + QString(GAMEGIVEUP_ENUM));
+            emit InToNetworkMsg(QString(GAMEGIVEUP_ENUM));
         AfterPlayGame();
     }
 }
@@ -281,21 +278,21 @@ void Widget::OnUndoChess(void)
 {
     if (TurnPlayerStatus != Player1Status)
     {
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]只能在轮到你时悔棋"));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]只能在轮到你时悔棋"));
         return;
     }
     else if (BePutChess->length() < 2)
     {
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]您没下过棋子，无法悔棋"));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]您没下过棋子，无法悔棋"));
         return;
     }
 
     //设置只能毁一次棋
     Action1->setDisabled(true);
-    emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]你使用了唯一的悔棋机会"));
+    emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]你使用了唯一的悔棋机会"));
     CoreUndoChess();
     if (PlayingModeStatus == MODE_PVP)
-        emit InProcessMsg(QString(TOONLINE_ENUM) + QString(UNDOCHESS_ENUM));
+        emit InToNetworkMsg(QString(UNDOCHESS_ENUM));
 
     update();
 }
@@ -306,12 +303,12 @@ void Widget::OnDrawChess(void)
     //如果是人机模式，机器是注定不会同意的
     if(PlayingModeStatus == MODE_PVE)
     {
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + QString(tr("[系统提示]对方拒绝了您的和棋请求！")));
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]对方拒绝了您的和棋请求！")));
     }
     else if (PlayingModeStatus == MODE_PVP)
     {
-        emit InProcessMsg(QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]已发送和局申请"));
-        emit InProcessMsg(QString(TOONLINE_ENUM) + QString(DRAWCHESS_ENUM) + "Try");
+        emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]已发送和局申请"));
+        emit InToNetworkMsg(QString(DRAWCHESS_ENUM) + "Try");
     }
 }
 

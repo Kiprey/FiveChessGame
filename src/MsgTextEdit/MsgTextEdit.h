@@ -21,7 +21,7 @@ private:
     void keyPressEvent(QKeyEvent *e);
 
 signals:
-    void InProcessMsg(QString);
+    void InToLocalMsg(QString);
 
 };
 

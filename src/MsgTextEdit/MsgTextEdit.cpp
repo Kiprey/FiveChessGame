@@ -11,14 +11,14 @@ void MsgTextEdit::keyPressEvent(QKeyEvent *e)
 
         //如果是空行,则取消发送
         if (Text.isEmpty())
-            Text = QString(TOLOCAL_ENUM) + QString(SYSMSG_ENUM) + tr("[系统提示]不允许发送空字符串!");
+            Text = QString(SYSMSG_ENUM) + tr("[系统提示]不允许发送空字符串!");
         else
-            Text = QString(TOLOCAL_ENUM) + QString(PLAYERMSG_ENUM) + Text;
+            Text = QString(PLAYERMSG_ENUM) + Text;
 
         //清空TextEdit里的文字
         clear();
 
-        emit InProcessMsg(Text);
+        emit InToLocalMsg(Text);
 
     }
     else
