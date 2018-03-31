@@ -22,7 +22,7 @@ void Widget::Player2PutChess(QString chessPosition)
     //添加进下过的棋子
     int LastChooseChessX = Position.x() * ChessLineWidth + ChessCanvasStartX;
     int LastChooseChessY = Position.y() * ChessLineWidth + ChessCanvasStartY;
-    BePutChess->append(QPoint(LastChooseChessX, LastChooseChessY));
+    BePutChess.append(QPoint(LastChooseChessX, LastChooseChessY));
     update();
 
     //判断是否胜利
@@ -36,12 +36,12 @@ void Widget::CoreUndoChess(void)
     //删除两颗棋子
     for (int i = 0; i < 2; i++)
     {
-        int LastChooseChessX = BePutChess->last().x();
-        int LastChooseChessY = BePutChess->last().y();
+        int LastChooseChessX = BePutChess.last().x();
+        int LastChooseChessY = BePutChess.last().y();
         int TempRow = (LastChooseChessX - ChessCanvasStartX) / ChessLineWidth;
         int TempColumn = (LastChooseChessY - ChessCanvasStartY) / ChessLineWidth;
         ChessPosition[TempRow][TempColumn] = PLAYER_NONE;
-        BePutChess->removeLast();
+        BePutChess.removeLast();
     }
 }
 
@@ -143,17 +143,27 @@ void Widget::AfterPlayGame(void)
     RoundTimer->stop();
 
     Button->setText(tr("开始游戏"));
-    Action1->setText(tr("人机对战"));
+    Action1->setText(tr("新游戏"));
     Action2->setText(tr("局域网联机对战"));
     Action3->setText(tr("关于"));
     Action1->setEnabled(true);
     Action2->setEnabled(true);
     disconnect(Action1, SIGNAL(triggered(bool)), this, SLOT(OnUndoChess(void)));
-    disconnect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnDrawChess(void)));
+    disconnect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnSavePVEDataFile(void)));
     disconnect(Action3, SIGNAL(triggered(bool)), this, SLOT(OnCheckWin(bool)));
     connect(Action1, SIGNAL(triggered(bool)), this, SLOT(OnMode_PVE(void)));
     connect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnChooseOnlineOption(void)));
     connect(Action3, SIGNAL(triggered(bool)), this, SLOT(About(void)));
+
+    ButtonMenu->clear();
+    PVEMenu->addAction(Action1);
+    PVEMenu->addAction(OpenPVEFile);
+    PVEMenu->setTitle(tr("人机对战"));
+
+    ButtonMenu->addMenu(PVEMenu);
+    ButtonMenu->addAction(Action2);
+    ButtonMenu->addAction(Action3);
+    Button->setMenu(ButtonMenu);
 }
 
 //点击悔棋或者每次下完棋子后检查是否胜利
@@ -172,10 +182,10 @@ void Widget::OnCheckWin(bool Status)
         int WinCount = 0;
 
         //检查所下最后一颗棋子有没有连成五子
-        if (!BePutChess->isEmpty())
+        if (!BePutChess.isEmpty())
         {
-            int LastChessRow = (BePutChess->last().x() - ChessCanvasStartX) / ChessLineWidth;
-            int LastChessColumn = (BePutChess->last().y() - ChessCanvasStartY) / ChessLineWidth;
+            int LastChessRow = (BePutChess.last().x() - ChessCanvasStartX) / ChessLineWidth;
+            int LastChessColumn = (BePutChess.last().y() - ChessCanvasStartY) / ChessLineWidth;
             //为了保险而加的if
             if (ChessPosition[LastChessRow][LastChessColumn] == TurnPlayerStatus)
             {
@@ -233,7 +243,7 @@ void Widget::OnCheckWin(bool Status)
             }
         }
         //两个特殊情况，胜利或者棋盘满了
-        if (WinCount >= 5 || BePutChess->count() >= ChessLines * ChessLines)
+        if (WinCount >= 5 || BePutChess.count() >= ChessLines * ChessLines)
         {
             //如果有人胜利
             if (WinCount >= 5)
@@ -250,6 +260,9 @@ void Widget::OnCheckWin(bool Status)
                 TotalTimeLabel->setText(tr("WINNER:"));
                 RoundTimeLabel->setStyleSheet("QLabel{color:#C0C0C0;background:#0022FF}");
                 RoundTimeLabel->setText(tr("NONE"));
+
+                //if(PlayingModeStatus == MODE_PVE)
+                    //OnMode_PVE();
             }
             //只要进入这个if,肯定都是要结束游戏
             AfterPlayGame();
@@ -281,7 +294,7 @@ void Widget::OnUndoChess(void)
         emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]只能在轮到你时悔棋"));
         return;
     }
-    else if (BePutChess->length() < 2)
+    else if (BePutChess.length() < 2)
     {
         emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]您没下过棋子，无法悔棋"));
         return;
@@ -297,18 +310,10 @@ void Widget::OnUndoChess(void)
     update();
 }
 
-//主动按下和棋键
+//PVP中主动按下和棋键
 void Widget::OnDrawChess(void)
 {
-    //如果是人机模式，机器是注定不会同意的
-    if(PlayingModeStatus == MODE_PVE)
-    {
-        emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]对方拒绝了您的和棋请求！")));
-    }
-    else if (PlayingModeStatus == MODE_PVP)
-    {
-        emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]已发送和局申请"));
-        emit InToNetworkMsg(QString(DRAWCHESS_ENUM) + "Try");
-    }
+    emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]已发送和局申请"));
+    emit InToNetworkMsg(QString(DRAWCHESS_ENUM) + "Try");
 }
 

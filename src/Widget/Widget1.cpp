@@ -194,7 +194,7 @@ void Widget::BeforePlayGame(void)
             ChessPosition[i][k] = PLAYER_NONE;
 
     //清空下过棋子的历史记录
-    BePutChess->clear();
+    BePutChess.clear();
     update();//刷新棋盘
 
     //设置总时间开始计时
@@ -202,23 +202,11 @@ void Widget::BeforePlayGame(void)
 
     //初始化回合时间
     TotalTimeCount = 0;
-    RoundTimeCount = 60;
     OnDisplayAndChangeTotalTime();
     DisplayRoundTime();
 
     //设置按钮菜单的相关Action
-    Action1->setText(tr("唯一的悔棋机会"));
-    Action2->setText(tr("和棋"));
-    Action3->setText(tr("认输"));
-    Button->setText(tr("游戏选项"));
-    ButtonMenu->addAction(Action3);
-
-    disconnect(Action1, SIGNAL(triggered(bool)), this, SLOT(OnMode_PVE(void)));
-    disconnect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnChooseOnlineOption(void)));
-    disconnect(Action3, SIGNAL(triggered(bool)), this, SLOT(About(void)));
-    connect(Action1, SIGNAL(triggered(bool)), this, SLOT(OnUndoChess(void)));
-    connect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnDrawChess(void)));
-    connect(Action3, SIGNAL(triggered(bool)), this, SLOT(OnCheckWin(bool)));
+    SetButtonFromNoneToPlaying();
 
     if (PlayingModeStatus == MODE_PVE ||
             (PlayingModeStatus == MODE_PVP &&
@@ -247,7 +235,7 @@ void Widget::BeforePlayGame(void)
         //如果是人机模式
         if (PlayingModeStatus == MODE_PVE)
         {
-            TmpString = tr("[系统提示]开始人机对战V1.0！");
+            TmpString = tr("[系统提示]开始人机对战V1.1！");
             emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
             TmpString = tr("[系统提示]你是") + (Player1Status == PLAYER_BLACK? tr("黑方") : tr("白方"));
             emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
@@ -255,6 +243,8 @@ void Widget::BeforePlayGame(void)
             DisplayRoundTime();
             if (Player2Status == TurnPlayerStatus)
                 Player2PutChess(nullptr);
+            //else
+              //  Player1Put();
         }
         //如果是联机模式中的服务器端玩家
         else
@@ -302,7 +292,23 @@ void Widget::ExchangeTurnPlayerStatus(void)
     //当轮换完棋方后，轮到的为Player2则调用机器算法下棋
     if (TurnPlayerStatus == Player2Status && PlayingModeStatus == MODE_PVE)
         Player2PutChess(nullptr);
+    //if (TurnPlayerStatus == Player2Status && PlayingModeStatus == MODE_PVE)
+        //Player1Put();
 }
+/*
+void Widget::Player1Put(void)
+{
+    QPoint Position = Computer1PutChess();
+
+    ChessPosition[Position.x()][Position.y()] = Player1Status;
+
+    int LastChooseChessX = Position.x() * ChessLineWidth + ChessCanvasStartX;
+    int LastChooseChessY = Position.y() * ChessLineWidth + ChessCanvasStartY;
+    BePutChess->append(QPoint(LastChooseChessX, LastChooseChessY));
+    update();
+    //判断是否胜利
+    OnCheckWin(true);
+}*/
 
 //重置回合时间
 void Widget::ResetRoundTimer(void)
@@ -312,4 +318,129 @@ void Widget::ResetRoundTimer(void)
     //开始新的周期，需要停止以前的周期
     RoundTimer->stop();
     RoundTimer->start(1000);
+}
+
+//读取人机数据文件
+void Widget::OnOpenPVEDataFile(void)
+{
+    QString OpenFileName = QFileDialog::getOpenFileName(
+                this, QString(), ".", tr("PVE数据文件(*.pve)"));
+    if(!OpenFileName.isEmpty())
+    {
+        QFile OpenedFile(OpenFileName);
+        if (OpenedFile.open(QFile::ReadOnly))
+        {
+            QDataStream DataStream((QIODevice *)&OpenedFile);
+            //读取六字节的数据，在读取文件时判断文件是否损坏
+            QString Test1 = "\xAF\xCB";
+            QString Test2 = "\xDE\x88";
+            QString Test3 = "\x24\x76";
+            QString TmpTest1, TmpTest2, TmpTest3;
+            bool UndoChessStatus = false;
+            int TmpTurnPlayerStatus;
+            int TmpTotalTimeCount;
+            QList<QList<int>> TmpChessPosition;
+            QList<QPoint> TmpBePutChess;
+
+            DataStream >> TmpTest1;
+            DataStream >> TmpTurnPlayerStatus;
+            DataStream >> TmpTotalTimeCount;
+            DataStream >> TmpChessPosition;
+            DataStream >> TmpTest2;
+            DataStream >> TmpBePutChess;
+            DataStream >> UndoChessStatus;
+            DataStream >> TmpTest3;
+
+            if (TmpTest1 == Test1 && TmpTest2 == Test2 && TmpTest3 == Test3)
+            {
+                SetButtonFromNoneToPlaying();
+                Action1->setEnabled(UndoChessStatus);
+                TurnPlayerStatus = TmpTurnPlayerStatus;
+                Player1Status = TurnPlayerStatus;
+                Player2Status = (TurnPlayerStatus == PLAYER_BLACK? PLAYER_WHITE : PLAYER_BLACK);
+                PlayingModeStatus = MODE_PVE;
+                ChessPosition = TmpChessPosition;
+                BePutChess = TmpBePutChess;
+                TotalTimeCount = TmpTotalTimeCount;
+                ResetRoundTimer();
+                DisplayRoundTime();
+                TotalTimer->start(1000);
+                OnDisplayAndChangeTotalTime();
+
+                update();
+                emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]游戏已加载，人机对战开始"));
+            }
+            else
+            {
+                QMessageBox::warning(this, tr("警告"), tr("文件已损坏，无法读取\n已删除该文件"));
+                OpenedFile.remove();
+            }
+        }
+    }
+}
+
+//保存人机数据文件
+//返回true 为保存成功， false 为保存失败
+bool Widget::OnSavePVEDataFile(void)
+{
+    QString DefaultFileName = QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss.pve");
+    QString SaveFileName = QFileDialog::getSaveFileName(
+                this, QString(), DefaultFileName, tr("PVE数据文件(*.pve)"));
+
+    if(!SaveFileName.isEmpty())
+    {
+        QFile SavedFile(SaveFileName);
+        if (SavedFile.open(QFile::WriteOnly))
+        {
+            QDataStream DataStream((QIODevice *)&SavedFile);
+            DataStream.setVersion(QDataStream::Qt_4_6);
+
+            //写入六字节的数据，在读取文件时判断文件是否损坏
+            QString Test1 = "\xAF\xCB";
+            QString Test2 = "\xDE\x88";
+            QString Test3 = "\x24\x76";
+
+            //保存数据文件
+            DataStream << Test1;
+            DataStream << TurnPlayerStatus;
+            DataStream << TotalTimeCount;
+            DataStream << ChessPosition;
+            DataStream << Test2;
+            DataStream << BePutChess;
+            DataStream << Action1->isEnabled();
+            DataStream << Test3;
+
+            QMessageBox::information(this, tr("消息"), tr("保存文件成功"));
+            return true;
+        }
+        else
+        {
+            QMessageBox::warning(this, tr("警告"), tr("保存文件失败"));
+            return false;
+        }
+    }
+    else
+        return false;
+}
+
+//设置按钮的样式为开始游戏时的
+void Widget::SetButtonFromNoneToPlaying(void)
+{
+    Action1->setText(tr("唯一的悔棋机会"));
+    disconnect(Action1, SIGNAL(triggered(bool)), this, SLOT(OnMode_PVE(void)));
+    connect(Action1, SIGNAL(triggered(bool)), this, SLOT(OnUndoChess(void)));
+
+    Action2->setText(tr("保存当前对局数据"));
+    disconnect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnChooseOnlineOption(void)));
+    connect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnSavePVEDataFile(void)));
+
+    Action3->setText(tr("认输"));
+    disconnect(Action3, SIGNAL(triggered(bool)), this, SLOT(About(void)));
+    connect(Action3, SIGNAL(triggered(bool)), this, SLOT(OnCheckWin(bool)));
+
+    Button->setText(tr("游戏选项"));
+    ButtonMenu->clear();
+    ButtonMenu->addAction(Action1);
+    ButtonMenu->addAction(Action2);
+    ButtonMenu->addAction(Action3);
 }

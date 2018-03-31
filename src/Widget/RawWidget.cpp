@@ -13,9 +13,11 @@ Widget::Widget(QWidget *parent) :
     TextEdit = new MsgTextEdit();
     Button = new QPushButton();
     ButtonMenu = new QMenu();
-    Action1 = new QAction(this);
-    Action2 = new QAction(this);
-    Action3 = new QAction(this);
+    PVEMenu = new QMenu();
+    Action1 = new QAction(nullptr);
+    Action2 = new QAction(nullptr);
+    Action3 = new QAction(nullptr);
+    OpenPVEFile = new QAction(nullptr);
     TotalTimeLabel = new QLabel(tr("NONE"));
     TotalTimer = new QTimer();
     RoundTimer = new QTimer();
@@ -23,7 +25,6 @@ Widget::Widget(QWidget *parent) :
     VBox = new QVBoxLayout();
     networkModule = new NetworkModule();
     OnlineOption = new OnlineOptionWidget(this);
-    BePutChess = new QList<QPoint>();
 
     //添加进垂直UI层，并设置各个空间的垂直比例
     VBox->addWidget(TextBrowser);
@@ -69,7 +70,7 @@ Widget::Widget(QWidget *parent) :
     //给指向落子点状态的列表初始化
     for(int i = 0; i < ChessLines; i++)
     {
-        QList<PlayerState> TmpQList;
+        QList<int> TmpQList;
         for(int j = 0; j < ChessLines; j++)
             TmpQList.append(PLAYER_NONE);
 
@@ -119,14 +120,20 @@ Widget::Widget(QWidget *parent) :
     TextBrowser->setFont(Font);
 
     //设置按钮以及按钮菜单
-    Action1->setText(tr("人机对战"));
+    Action1->setText(tr("新游戏"));
     connect(Action1, SIGNAL(triggered(bool)), this, SLOT(OnMode_PVE(void)));
     Action2->setText(tr("局域网联机对战"));
     connect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnChooseOnlineOption(void)));
     Action3->setText(tr("关于"));
     connect(Action3, SIGNAL(triggered(bool)), this, SLOT(About(void)));
+    OpenPVEFile->setText(tr("打开数据文件以继续对局"));
+    connect(OpenPVEFile, SIGNAL(triggered(bool)), this, SLOT(OnOpenPVEDataFile(void)));
 
-    ButtonMenu->addAction(Action1);
+    PVEMenu->addAction(Action1);
+    PVEMenu->addAction(OpenPVEFile);
+    PVEMenu->setTitle(tr("人机对战"));
+
+    ButtonMenu->addMenu(PVEMenu);
     ButtonMenu->addAction(Action2);
     ButtonMenu->addAction(Action3);
     Button->setMenu(ButtonMenu);
@@ -152,12 +159,12 @@ Widget::Widget(QWidget *parent) :
 Widget::~Widget()
 {
     //一堆delete，没什么好看的
-    delete BePutChess;
     delete networkModule;
     delete TextBrowser;
     delete TextEdit;
-    delete Button ;
+    delete Button;
     delete ButtonMenu;
+    delete PVEMenu;
     delete TotalTimeLabel;
     delete TotalTimer;
     delete RoundTimeLabel;
@@ -168,6 +175,7 @@ Widget::~Widget()
     delete Action1;
     delete Action2;
     delete Action3;
+    delete OpenPVEFile;
 
     delete ui;
 }
@@ -263,7 +271,7 @@ void Widget::paintEvent(QPaintEvent *)
         }
     }
     //突出整盘游戏中的最后一颗棋子
-    if (!BePutChess->isEmpty())
+    if (!BePutChess.isEmpty())
     {
         PlayerColor = Qt::red;
         Painter->setPen(QPen(QBrush(PlayerColor), 2, Qt::DashLine));
@@ -271,8 +279,8 @@ void Widget::paintEvent(QPaintEvent *)
 
         //这个4/3无特殊含义， 就只是感觉好看而已
         int LastChooseChessWidth = ChessWidth * 4/3;
-        int LastChooseChessX = BePutChess->last().x();
-        int LastChooseChessY = BePutChess->last().y();
+        int LastChooseChessX = BePutChess.last().x();
+        int LastChooseChessY = BePutChess.last().y();
         Painter->drawRect(LastChooseChessX - LastChooseChessWidth / 2, LastChooseChessY - LastChooseChessWidth / 2, LastChooseChessWidth, LastChooseChessWidth);
     }
     //如果选中的落子点没有被设置为空，则画选中的棋子
@@ -358,7 +366,7 @@ void Widget::mouseReleaseEvent(QMouseEvent *)
         //之所以不用再判断落子点是否是空，是因为已经在mouseMoveEvent()确定好了
 
         //添加进下过的棋子
-        BePutChess->append(QPoint(ChooseChessX, ChooseChessY));
+        BePutChess.append(QPoint(ChooseChessX, ChooseChessY));
 
         //重置选中的棋子
         ChooseChessX = 0;
@@ -380,5 +388,58 @@ void Widget::mouseReleaseEvent(QMouseEvent *)
         }
         update();
         OnCheckWin(true);
+    }
+}
+
+void Widget::closeEvent(QCloseEvent * CloseEvent)
+{
+    if (PlayingModeStatus == MODE_PVP)
+    {
+        QMessageBox MsgBox(this);
+        MsgBox.setWindowTitle(tr("确定离开？"));
+        MsgBox.setText(tr("您当前正在进行联机对战，离开将视为认输\n是否离开？"));
+        MsgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        MsgBox.setButtonText(QMessageBox::Yes, tr("是"));
+        MsgBox.setButtonText(QMessageBox::No, tr("否"));
+        MsgBox.setDefaultButton(QMessageBox::No);
+        MsgBox.setIcon(QMessageBox::Question);
+        switch(MsgBox.exec())
+        {
+        case QMessageBox::Yes:
+            //认输
+            OnCheckWin(false);
+            CloseEvent->accept();
+            break;
+        case QMessageBox::No:
+            CloseEvent->ignore();
+            break;
+        }
+    }
+    else if (PlayingModeStatus == MODE_PVE)
+    {
+        QMessageBox MsgBox(this);
+        MsgBox.setWindowTitle(tr("确定离开？"));
+        MsgBox.setText(tr("您当前进行的人机对战尚未分出胜负\n是否保存当前对局再离开？或者不保存就离开？"));
+        MsgBox.setStandardButtons(QMessageBox::Save | QMessageBox::Discard | QMessageBox::Ignore);
+        MsgBox.setButtonText(QMessageBox::Save, tr("保存对局后再离开"));
+        MsgBox.setButtonText(QMessageBox::Discard, tr("不保存直接离开"));
+        MsgBox.setButtonText(QMessageBox::Ignore, tr("返回游戏"));
+        MsgBox.setDefaultButton(QMessageBox::Ignore);
+        MsgBox.setIcon(QMessageBox::Question);
+        switch(MsgBox.exec())
+        {
+        case QMessageBox::Save:
+            if (OnSavePVEDataFile())
+                CloseEvent->accept();
+            else
+                CloseEvent->ignore();
+            break;
+        case QMessageBox::Discard:
+            CloseEvent->accept();
+            break;
+        case QMessageBox::Ignore:
+            CloseEvent->ignore();
+            break;
+        }
     }
 }

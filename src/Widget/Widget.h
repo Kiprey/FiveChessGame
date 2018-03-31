@@ -6,12 +6,14 @@
 #include <QWidget>
 #include <QDebug>
 #include <QTimer>
+#include <QDateTime>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QTextBrowser>
 #include <QPainter>
 #include <QMouseEvent>
+#include <QCloseEvent>
 #include <QPushButton>
 #include <QMenu>
 #include <QAction>
@@ -20,6 +22,7 @@
 #include <QList>
 #include <QStack>
 #include <QPoint>
+#include <QFileDialog>
 
 #include <ctime>    //初始化随机数用
 #include "MsgEnums.h"
@@ -66,6 +69,10 @@ private slots:
     void OnDisconnected(void);
     //关于程序
     void About(void);
+    //读取人机对战的对局数据
+    void OnOpenPVEDataFile(void);
+    //保存人机对战的对局数据
+    bool OnSavePVEDataFile(void);
 
 signals:
     void InToLocalMsg(QString);
@@ -76,9 +83,12 @@ private:
     void paintEvent(QPaintEvent *);
     void mouseMoveEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
+    void closeEvent(QCloseEvent *);
 
     //机器下棋
     QPoint ComputerPutChess(void);
+    //QPoint Computer1PutChess(void);
+    //void Player1Put(void);
     //在选择任何模式后，都要执行的语句，开始游戏
     void BeforePlayGame(void);
     //重置回合时间
@@ -95,6 +105,8 @@ private:
     void GetDrawChessMsg(QString);
     //显示回合时间
     void DisplayRoundTime(void);
+    //设置按钮与按钮菜单为开始游戏后的样式
+    void SetButtonFromNoneToPlaying(void);
 
     //网络模块，详情见NetworkModule.h
     NetworkModule * networkModule;
@@ -118,20 +130,20 @@ private:
     enum PlayerState {TURNPLAYER_NONE, PLAYER_NONE, PLAYER_WHITE, PLAYER_BLACK, PLAYER_WATCHING};
 
     //玩家这盘游戏的棋方（黑方白方）
-    PlayerState Player1Status;
-    PlayerState Player2Status;
+    int Player1Status;
+    int Player2Status;
     //轮到的棋方
-    PlayerState TurnPlayerStatus;
+    int TurnPlayerStatus;
 
     //棋盘上落子点的状态(棋盘上下棋的地方下的是黑，白，还是空）
-    QList<QList<PlayerState>> ChessPosition;
+    QList<QList<int>> ChessPosition;
 
     //选中的棋子的XY
     int ChooseChessX;
     int ChooseChessY;
 
     //下过的棋子的XY坐标都会在这里
-    QList<QPoint> * BePutChess;
+    QList<QPoint> BePutChess;
     /***************************以下貌似没有那么重要*************************/
 
     Ui::Widget *ui;
@@ -142,7 +154,9 @@ private:
 
     QPushButton * Button ;     //总按钮
     QMenu * ButtonMenu;        //按钮菜单
+    QMenu * PVEMenu;           //人机选项中用到的menu
     QAction *Action1, *Action2, *Action3; //按钮菜单中的动作
+    QAction * OpenPVEFile;    //打开PVE的对局数据文件
 
     QLabel * TotalTimeLabel;         //输出时间的标签
     QLabel * RoundTimeLabel;         //输出回合时间的标签
