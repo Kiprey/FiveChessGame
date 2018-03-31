@@ -22,7 +22,7 @@ void Widget::Player2PutChess(QString chessPosition)
     //添加进下过的棋子
     int LastChooseChessX = Position.x() * ChessLineWidth + ChessCanvasStartX;
     int LastChooseChessY = Position.y() * ChessLineWidth + ChessCanvasStartY;
-    BePutChess.append(QPoint(LastChooseChessX, LastChooseChessY));
+    BePutChess->append(QPoint(LastChooseChessX, LastChooseChessY));
     update();
 
     //判断是否胜利
@@ -36,12 +36,12 @@ void Widget::CoreUndoChess(void)
     //删除两颗棋子
     for (int i = 0; i < 2; i++)
     {
-        int LastChooseChessX = BePutChess.last().x();
-        int LastChooseChessY = BePutChess.last().y();
+        int LastChooseChessX = BePutChess->last().x();
+        int LastChooseChessY = BePutChess->last().y();
         int TempRow = (LastChooseChessX - ChessCanvasStartX) / ChessLineWidth;
         int TempColumn = (LastChooseChessY - ChessCanvasStartY) / ChessLineWidth;
         ChessPosition[TempRow][TempColumn] = PLAYER_NONE;
-        BePutChess.removeLast();
+        BePutChess->removeLast();
     }
 }
 
@@ -182,10 +182,10 @@ void Widget::OnCheckWin(bool Status)
         int WinCount = 0;
 
         //检查所下最后一颗棋子有没有连成五子
-        if (!BePutChess.isEmpty())
+        if (!BePutChess->isEmpty())
         {
-            int LastChessRow = (BePutChess.last().x() - ChessCanvasStartX) / ChessLineWidth;
-            int LastChessColumn = (BePutChess.last().y() - ChessCanvasStartY) / ChessLineWidth;
+            int LastChessRow = (BePutChess->last().x() - ChessCanvasStartX) / ChessLineWidth;
+            int LastChessColumn = (BePutChess->last().y() - ChessCanvasStartY) / ChessLineWidth;
             //为了保险而加的if
             if (ChessPosition[LastChessRow][LastChessColumn] == TurnPlayerStatus)
             {
@@ -243,7 +243,7 @@ void Widget::OnCheckWin(bool Status)
             }
         }
         //两个特殊情况，胜利或者棋盘满了
-        if (WinCount >= 5 || BePutChess.count() >= ChessLines * ChessLines)
+        if (WinCount >= 5 || BePutChess->count() >= ChessLines * ChessLines)
         {
             //如果有人胜利
             if (WinCount >= 5)
@@ -294,7 +294,7 @@ void Widget::OnUndoChess(void)
         emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]只能在轮到你时悔棋"));
         return;
     }
-    else if (BePutChess.length() < 2)
+    else if (BePutChess->length() < 2)
     {
         emit InToLocalMsg(QString(SYSMSG_ENUM) + tr("[系统提示]您没下过棋子，无法悔棋"));
         return;

@@ -194,7 +194,7 @@ void Widget::BeforePlayGame(void)
             ChessPosition[i][k] = PLAYER_NONE;
 
     //清空下过棋子的历史记录
-    BePutChess.clear();
+    BePutChess->clear();
     update();//刷新棋盘
 
     //设置总时间开始计时
@@ -324,7 +324,7 @@ void Widget::ResetRoundTimer(void)
 void Widget::OnOpenPVEDataFile(void)
 {
     QString OpenFileName = QFileDialog::getOpenFileName(
-                this, QString(), ".", tr("PVE数据文件(*.pve)"));
+                this, QString(), ".", tr("PVE数据文件(*.pve);;任意格式(*.*)"));
     if(!OpenFileName.isEmpty())
     {
         QFile OpenedFile(OpenFileName);
@@ -335,22 +335,28 @@ void Widget::OnOpenPVEDataFile(void)
             QString Test1 = "\xAF\xCB";
             QString Test2 = "\xDE\x88";
             QString Test3 = "\x24\x76";
+            //存放数据的临时容器
             QString TmpTest1, TmpTest2, TmpTest3;
             bool UndoChessStatus = false;
             int TmpTurnPlayerStatus;
             int TmpTotalTimeCount;
-            QList<QList<int>> TmpChessPosition;
-            QList<QPoint> TmpBePutChess;
+            QList<QPoint> * TmpBePutChess = new QList<QPoint>;
+            int ** TmpChessPosition = new int * [ChessLines];
+            for (int i = 0; i < ChessLines; i++)
+                TmpChessPosition[i] = new int[ChessLines];
 
             DataStream >> TmpTest1;
             DataStream >> TmpTurnPlayerStatus;
             DataStream >> TmpTotalTimeCount;
-            DataStream >> TmpChessPosition;
+            for(int i = 0; i < ChessLines; i++)
+                for(int j = 0; j < ChessLines; j++)
+                    DataStream >> TmpChessPosition[i][j];
             DataStream >> TmpTest2;
-            DataStream >> TmpBePutChess;
+            DataStream >> *TmpBePutChess;
             DataStream >> UndoChessStatus;
             DataStream >> TmpTest3;
 
+            //如果文件无损坏
             if (TmpTest1 == Test1 && TmpTest2 == Test2 && TmpTest3 == Test3)
             {
                 SetButtonFromNoneToPlaying();
@@ -359,8 +365,10 @@ void Widget::OnOpenPVEDataFile(void)
                 Player1Status = TurnPlayerStatus;
                 Player2Status = (TurnPlayerStatus == PLAYER_BLACK? PLAYER_WHITE : PLAYER_BLACK);
                 PlayingModeStatus = MODE_PVE;
-                ChessPosition = TmpChessPosition;
-                BePutChess = TmpBePutChess;
+                for(int i = 0; i < ChessLines; i++)
+                    for (int j = 0; j < ChessLines; j++)
+                        ChessPosition[i][j] = TmpChessPosition[i][j];
+                *BePutChess = *TmpBePutChess;
                 TotalTimeCount = TmpTotalTimeCount;
                 ResetRoundTimer();
                 DisplayRoundTime();
@@ -375,6 +383,10 @@ void Widget::OnOpenPVEDataFile(void)
                 QMessageBox::warning(this, tr("警告"), tr("文件已损坏，无法读取\n已删除该文件"));
                 OpenedFile.remove();
             }
+
+            for(int i = 0; i < ChessLines; i++)
+                delete TmpChessPosition[i];
+            delete[] TmpChessPosition;
         }
     }
 }
@@ -404,9 +416,11 @@ bool Widget::OnSavePVEDataFile(void)
             DataStream << Test1;
             DataStream << TurnPlayerStatus;
             DataStream << TotalTimeCount;
-            DataStream << ChessPosition;
+            for(int i = 0; i < ChessLines; i++)
+                for (int j = 0; j < ChessLines; j++)
+                    DataStream << ChessPosition[i][j];
             DataStream << Test2;
-            DataStream << BePutChess;
+            DataStream << *BePutChess;
             DataStream << Action1->isEnabled();
             DataStream << Test3;
 

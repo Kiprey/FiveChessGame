@@ -127,7 +127,7 @@ private:
         //之所以又搞了TURNPLAY_NONE，是因为，当TurnPlayerStatus = PLAYER_NONE
         //Player1Status = PLAYER_NONE， 则 TurnPlayerStatus == Player1Status，
         //就会引发错误
-    enum PlayerState {TURNPLAYER_NONE, PLAYER_NONE, PLAYER_WHITE, PLAYER_BLACK, PLAYER_WATCHING};
+    enum PlayerState {TURNPLAYER_NONE, PLAYER_NONE, PLAYER_WHITE, PLAYER_BLACK};
 
     //玩家这盘游戏的棋方（黑方白方）
     int Player1Status;
@@ -136,14 +136,14 @@ private:
     int TurnPlayerStatus;
 
     //棋盘上落子点的状态(棋盘上下棋的地方下的是黑，白，还是空）
-    QList<QList<int>> ChessPosition;
+    int ** ChessPosition;
 
     //选中的棋子的XY
     int ChooseChessX;
     int ChooseChessY;
 
     //下过的棋子的XY坐标都会在这里
-    QList<QPoint> BePutChess;
+    QList<QPoint> * BePutChess;
     /***************************以下貌似没有那么重要*************************/
 
     Ui::Widget *ui;

@@ -23,6 +23,7 @@ Widget::Widget(QWidget *parent) :
     RoundTimer = new QTimer();
     RoundTimeLabel = new QLabel(tr("NONE"));
     VBox = new QVBoxLayout();
+    BePutChess = new QList<QPoint>;
     networkModule = new NetworkModule();
     OnlineOption = new OnlineOptionWidget(this);
 
@@ -67,14 +68,13 @@ Widget::Widget(QWidget *parent) :
     ChessCanvasEndY = ChessCanvasStartY + ChessCanvasSideLength - ChessLineWidth;
     SmallBlackPointWidth = 6;
 
-    //给指向落子点状态的列表初始化
-    for(int i = 0; i < ChessLines; i++)
+    //给存储棋盘数据的变量分配内存并初始化
+    ChessPosition = new int * [ChessLines];
+    for (int i = 0; i < ChessLines; i++)
     {
-        QList<int> TmpQList;
+        ChessPosition[i] = new int[ChessLines];
         for(int j = 0; j < ChessLines; j++)
-            TmpQList.append(PLAYER_NONE);
-
-        ChessPosition.append(TmpQList);
+            ChessPosition[i][j] = PLAYER_NONE;
     }
 
  /*********************初始化结束*********************/
@@ -159,6 +159,7 @@ Widget::Widget(QWidget *parent) :
 Widget::~Widget()
 {
     //一堆delete，没什么好看的
+    delete BePutChess;
     delete networkModule;
     delete TextBrowser;
     delete TextEdit;
@@ -176,6 +177,10 @@ Widget::~Widget()
     delete Action2;
     delete Action3;
     delete OpenPVEFile;
+
+    for (int i = 0; i < ChessLines; i++)
+        delete ChessPosition[i];
+    delete[] ChessPosition;
 
     delete ui;
 }
@@ -271,7 +276,7 @@ void Widget::paintEvent(QPaintEvent *)
         }
     }
     //突出整盘游戏中的最后一颗棋子
-    if (!BePutChess.isEmpty())
+    if (!BePutChess->isEmpty())
     {
         PlayerColor = Qt::red;
         Painter->setPen(QPen(QBrush(PlayerColor), 2, Qt::DashLine));
@@ -279,8 +284,8 @@ void Widget::paintEvent(QPaintEvent *)
 
         //这个4/3无特殊含义， 就只是感觉好看而已
         int LastChooseChessWidth = ChessWidth * 4/3;
-        int LastChooseChessX = BePutChess.last().x();
-        int LastChooseChessY = BePutChess.last().y();
+        int LastChooseChessX = BePutChess->last().x();
+        int LastChooseChessY = BePutChess->last().y();
         Painter->drawRect(LastChooseChessX - LastChooseChessWidth / 2, LastChooseChessY - LastChooseChessWidth / 2, LastChooseChessWidth, LastChooseChessWidth);
     }
     //如果选中的落子点没有被设置为空，则画选中的棋子
@@ -366,7 +371,7 @@ void Widget::mouseReleaseEvent(QMouseEvent *)
         //之所以不用再判断落子点是否是空，是因为已经在mouseMoveEvent()确定好了
 
         //添加进下过的棋子
-        BePutChess.append(QPoint(ChooseChessX, ChooseChessY));
+        BePutChess->append(QPoint(ChooseChessX, ChooseChessY));
 
         //重置选中的棋子
         ChooseChessX = 0;
@@ -391,6 +396,7 @@ void Widget::mouseReleaseEvent(QMouseEvent *)
     }
 }
 
+//关闭时弹出的窗口
 void Widget::closeEvent(QCloseEvent * CloseEvent)
 {
     if (PlayingModeStatus == MODE_PVP)
