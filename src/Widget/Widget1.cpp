@@ -440,16 +440,25 @@ bool Widget::OnSavePVEDataFile(void)
 //设置按钮的样式为开始游戏时的
 void Widget::SetButtonFromNoneToPlaying(void)
 {
-    Action1->setText(tr("唯一的悔棋机会"));
     disconnect(Action1, SIGNAL(triggered(bool)), this, SLOT(OnMode_PVE(void)));
+    disconnect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnChooseOnlineOption(void)));
+    disconnect(Action3, SIGNAL(triggered(bool)), this, SLOT(About(void)));
+
+    Action1->setText(tr("唯一的悔棋机会"));
     connect(Action1, SIGNAL(triggered(bool)), this, SLOT(OnUndoChess(void)));
 
-    Action2->setText(tr("保存当前对局数据"));
-    disconnect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnChooseOnlineOption(void)));
-    connect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnSavePVEDataFile(void)));
+    if(PlayingModeStatus == MODE_PVE)
+    {
+        Action2->setText(tr("保存当前对局数据"));
+        connect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnSavePVEDataFile(void)));
+    }
+    else if (PlayingModeStatus == MODE_PVP)
+    {
+        Action2->setText(tr("和棋"));
+        connect(Action2, SIGNAL(triggered(bool)), this, SLOT(OnDrawChess(void)));
+    }
 
     Action3->setText(tr("认输"));
-    disconnect(Action3, SIGNAL(triggered(bool)), this, SLOT(About(void)));
     connect(Action3, SIGNAL(triggered(bool)), this, SLOT(OnCheckWin(bool)));
 
     Button->setText(tr("游戏选项"));
