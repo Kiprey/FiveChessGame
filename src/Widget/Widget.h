@@ -24,6 +24,7 @@
 #include <QPoint>
 #include <QFileDialog>
 
+#include <climits> //取int最大值最小值用
 #include <ctime>    //初始化随机数用
 #include "MsgEnums.h"
 #include "MsgTextEdit/MsgTextEdit.h"
@@ -87,8 +88,12 @@ private:
 
     //机器下棋
     QPoint ComputerPutChess(void);
+    void EvaluatePositionScore(char**, QPoint &);
+    QList<QPoint> * FindAvailablePosition(char**);
+
     //QPoint Computer1PutChess(void);
     //void Player1Put(void);
+
     //在选择任何模式后，都要执行的语句，开始游戏
     void BeforePlayGame(void);
     //重置回合时间
@@ -107,6 +112,8 @@ private:
     void DisplayRoundTime(void);
     //设置按钮与按钮菜单为开始游戏后的样式
     void SetButtonFromNoneToPlaying(void);
+    //检查五子的核心
+    bool CoreCheckWin(QPoint);
 
     //网络模块，详情见NetworkModule.h
     NetworkModule * networkModule;

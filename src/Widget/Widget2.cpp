@@ -179,7 +179,7 @@ void Widget::OnCheckWin(bool Status)
     if (Status)
     {
         //连成的棋子数
-        int WinCount = 0;
+        bool Win = false;
 
         //检查所下最后一颗棋子有没有连成五子
         if (!BePutChess->isEmpty())
@@ -188,65 +188,13 @@ void Widget::OnCheckWin(bool Status)
             int LastChessColumn = (BePutChess->last().y() - ChessCanvasStartY) / ChessLineWidth;
             //为了保险而加的if
             if (ChessPosition[LastChessRow][LastChessColumn] == TurnPlayerStatus)
-            {
-                //遍历下的最后一颗棋子的4个方向
-                for (int a = -1; a <= 1; a++)
-                {
-                    for (int b = -1; b <= 0; b++)
-                    {
-                        //这个if判断与上面的两个嵌套for循环搭配
-                        //使得只能遍历4个方向
-                        //再不懂就画图自己看
-                        if(b == 0 && (a == 0 || a == 1))
-                            continue;
-
-                        //之所以设置为1而不是为0
-                        //是因为这个1代表的是最初的棋子，也就是下的最后一颗棋子
-                        WinCount = 1;
-
-                        //分别向两个方向遍历
-                        int TmpRow = 0;
-                        int TmpColumn = 0;
-
-                        for (int Direct = -1; Direct <= 1; Direct++)
-                        {
-                            if(Direct != 0)
-                            {
-                                //设置当前遍历的位置为最后一颗下的棋子的行列
-                                TmpRow = LastChessRow;
-                                TmpColumn = LastChessColumn;
-
-                                while(true)
-                                {
-                                    //向遍历方向推进一个
-                                    TmpRow += a * Direct;
-                                    TmpColumn += b * Direct;
-
-                                    //如果越界，退出
-                                    if (TmpRow < 0 || TmpColumn < 0 || TmpRow >= ChessLines || TmpColumn >= ChessLines)
-                                        break;
-                                    //如果为自己的棋子，则棋数+1
-                                    if (ChessPosition[TmpRow][TmpColumn] == TurnPlayerStatus)
-                                        WinCount++;
-                                    //否则，退出此循环
-                                    else
-                                        break;
-                                }
-                           }
-                        }
-                        if (WinCount >= 5)
-                            break;
-                    }
-                    if (WinCount >= 5)
-                        break;
-                }
-            }
+                Win = CoreCheckWin(QPoint(LastChessRow, LastChessColumn));
         }
         //两个特殊情况，胜利或者棋盘满了
-        if (WinCount >= 5 || BePutChess->count() >= ChessLines * ChessLines)
+        if (Win || BePutChess->count() >= ChessLines * ChessLines)
         {
             //如果有人胜利
-            if (WinCount >= 5)
+            if (Win)
             {
                 emit InToLocalMsg(QString(SYSMSG_ENUM) + QString(tr("[系统提示]游戏结束！！！")));
                 TotalTimeLabel->setText(tr("WINNER:"));
@@ -284,6 +232,67 @@ void Widget::OnCheckWin(bool Status)
             emit InToNetworkMsg(QString(GAMEGIVEUP_ENUM));
         AfterPlayGame();
     }
+}
+
+//检查五子的核心
+//返回是否连成五子
+bool Widget::CoreCheckWin(QPoint Point)
+{
+    int WinCount = 0;
+    int LastChessRow = Point.x();
+    int LastChessColumn = Point.y();
+
+    //遍历下的最后一颗棋子的4个方向
+    for (int a = -1; a <= 1; a++)
+    {
+        for (int b = -1; b <= 0; b++)
+        {
+            //这个if判断与上面的两个嵌套for循环搭配
+            //使得只能遍历4个方向
+            //再不懂就画图自己看
+            if(b == 0 && (a == 0 || a == 1))
+                continue;
+
+            //之所以设置为1而不是为0
+            //是因为这个1代表的是最初的棋子，也就是下的最后一颗棋子
+            WinCount = 1;
+
+            //分别向两个方向遍历
+            int TmpRow = 0;
+            int TmpColumn = 0;
+
+            for (int Direct = -1; Direct <= 1; Direct++)
+            {
+                if(Direct != 0)
+                {
+                    //设置当前遍历的位置为最后一颗下的棋子的行列
+                    TmpRow = LastChessRow;
+                    TmpColumn = LastChessColumn;
+
+                    while(true)
+                    {
+                        //向遍历方向推进一个
+                        TmpRow += a * Direct;
+                        TmpColumn += b * Direct;
+
+                        //如果越界，退出
+                        if (TmpRow < 0 || TmpColumn < 0 || TmpRow >= ChessLines || TmpColumn >= ChessLines)
+                            break;
+                        //如果为自己的棋子，则棋数+1
+                        if (ChessPosition[TmpRow][TmpColumn] == TurnPlayerStatus)
+                            WinCount++;
+                        //否则，退出此循环
+                        else
+                            break;
+                    }
+               }
+            }
+            if (WinCount >= 5)
+                return true;
+        }
+    }
+    return false;
+
 }
 
 //主动按下悔棋键
