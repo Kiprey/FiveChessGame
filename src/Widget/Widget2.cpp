@@ -119,8 +119,8 @@ void Widget::About(void)
 {
     QMessageBox MsgBox(this);
     MsgBox.setWindowTitle(tr("关于"));
-    MsgBox.setText(tr("作者： Hipre") + "\n" +
-                   tr("邮箱： Hipre@qq.com") + "\n" +
+    MsgBox.setText(tr("作者： Kiprey") + "\n" +
+                   tr("邮箱： Kiprey@qq.com") + "\n" +
                    tr("PS：如果有BUG或其他更好的想法，欢迎致信至邮箱！"));
     MsgBox.setStandardButtons(QMessageBox::Ok);
     MsgBox.setButtonText(QMessageBox::Ok, tr("确定"));
@@ -188,7 +188,7 @@ void Widget::OnCheckWin(bool Status)
             int LastChessColumn = (BePutChess->last().y() - ChessCanvasStartY) / ChessLineWidth;
             //为了保险而加的if
             if (ChessPosition[LastChessRow][LastChessColumn] == TurnPlayerStatus)
-                Win = CoreCheckWin(QPoint(LastChessRow, LastChessColumn));
+                Win = CoreCheckWin(QPoint(LastChessRow, LastChessColumn), ChessPosition);
         }
         //两个特殊情况，胜利或者棋盘满了
         if (Win || BePutChess->count() >= ChessLines * ChessLines)
@@ -236,7 +236,8 @@ void Widget::OnCheckWin(bool Status)
 
 //检查五子的核心
 //返回是否连成五子
-bool Widget::CoreCheckWin(QPoint Point)
+//Point为最后下的棋子， chessPosition为存放棋盘数据的表
+bool Widget::CoreCheckWin(QPoint Point, int** chessPosition)
 {
     int WinCount = 0;
     int LastChessRow = Point.x();
@@ -279,7 +280,7 @@ bool Widget::CoreCheckWin(QPoint Point)
                         if (TmpRow < 0 || TmpColumn < 0 || TmpRow >= ChessLines || TmpColumn >= ChessLines)
                             break;
                         //如果为自己的棋子，则棋数+1
-                        if (ChessPosition[TmpRow][TmpColumn] == TurnPlayerStatus)
+                        if (chessPosition[TmpRow][TmpColumn] == chessPosition[LastChessRow][LastChessColumn])
                             WinCount++;
                         //否则，退出此循环
                         else

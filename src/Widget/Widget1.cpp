@@ -140,6 +140,7 @@ Server的定时器如果时间到了，则会发送相应的信息，让Client�
         //如果在人机模式中超时，则pass到下一个玩家里去
         else if (PlayingModeStatus == MODE_PVE && RoundTimeCount <= 0)
         {
+
             //重置选中的棋子，把选择棋子的痕迹抹去
             ChooseChessX = 0;
             ChooseChessY = 0;
@@ -147,6 +148,7 @@ Server的定时器如果时间到了，则会发送相应的信息，让Client�
 
             ResetRoundTimer();
             ExchangeTurnPlayerStatus();
+
         }
     }
     //如果是玩家2的回合
@@ -215,8 +217,7 @@ void Widget::BeforePlayGame(void)
         //这边，之所以加了networkModule->NetworkStatus == NetworkModule::NETWORK_SERVER_CONNECT
         //这条判断，是因为我将决定哪方黑哪方白的的权限给了服务器一方，服务器将在连接上客户端后自动选择黑白方
 
-        //初始化随机数种子
-        qsrand(time(nullptr));
+
         //设置玩家的棋子颜色
         if (qrand() % 2 == 0)
         {
@@ -235,7 +236,7 @@ void Widget::BeforePlayGame(void)
         //如果是人机模式
         if (PlayingModeStatus == MODE_PVE)
         {
-            TmpString = tr("[系统提示]开始人机对战V1.1！");
+            TmpString = tr("[系统提示]开始人机对战V2.0Beta！");
             emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
             TmpString = tr("[系统提示]你是") + (Player1Status == PLAYER_BLACK? tr("黑方") : tr("白方"));
             emit InToLocalMsg(QString(SYSMSG_ENUM) + TmpString);
@@ -295,20 +296,6 @@ void Widget::ExchangeTurnPlayerStatus(void)
     //if (TurnPlayerStatus == Player2Status && PlayingModeStatus == MODE_PVE)
         //Player1Put();
 }
-/*
-void Widget::Player1Put(void)
-{
-    QPoint Position = Computer1PutChess();
-
-    ChessPosition[Position.x()][Position.y()] = Player1Status;
-
-    int LastChooseChessX = Position.x() * ChessLineWidth + ChessCanvasStartX;
-    int LastChooseChessY = Position.y() * ChessLineWidth + ChessCanvasStartY;
-    BePutChess->append(QPoint(LastChooseChessX, LastChooseChessY));
-    update();
-    //判断是否胜利
-    OnCheckWin(true);
-}*/
 
 //重置回合时间
 void Widget::ResetRoundTimer(void)

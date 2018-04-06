@@ -7,6 +7,9 @@ Widget::Widget(QWidget *parent) :
     ui(new Ui::Widget)
 {
     ui->setupUi(this);
+
+    //初始化随机数种子
+    qsrand(time(nullptr));
     /****************垂直层面****************/
     //在Heap中建立对象
     TextBrowser = new QTextBrowser();
