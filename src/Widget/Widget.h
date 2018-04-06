@@ -88,6 +88,14 @@ private:
 
     //机器下棋
     QPoint ComputerPutChess(void);
+    //计算某个位置的得分（AI分-玩家分）
+    int EvaluatePositionScore(int**, QPoint);
+    //计算整个棋盘的得分
+    int EvaluateAllPosition(int **);
+    //找寻某个棋盘里可以下棋的位置
+    QList<QPoint> * FindAvailablePosition(int**);
+    //递归寻找，模拟下棋
+    QPoint Recurrence(int, int, int, int, int, int** , QPoint);
 
     //在选择任何模式后，都要执行的语句，开始游戏
     void BeforePlayGame(void);
