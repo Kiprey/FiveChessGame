@@ -13,6 +13,19 @@
 //例如(0, 0)=>第一行第一列
 QPoint Widget::ComputerPutChess(void)
 {
+
+    //注意：设置这些比率的首要条件是2 * ChessUpLevelRate > DeadChessRate
+    // 2 * DeadChessRate < 1
+    //活棋和死棋直接的比例
+    float DeadChessRate = 0.4;
+    //主棋组设置的权值和副棋组设置的比例
+    float SecondaryGroupChessRate = 0.5;
+    //每种活棋之间的比例
+    float ChessUpLevelRate = 0.25;
+    //考虑AI优先的额外权值
+    float AIFirstRate = 5;
+
+
     //存储棋盘位置权值的变量
     QList<QList<int>> PositionScore;
     //初始化棋盘上每个位置的权值
@@ -85,24 +98,13 @@ QPoint Widget::ComputerPutChess(void)
             //遍历两个回合，分别遍历AI方和玩家方
             for(int RoundIndex = 0; RoundIndex < 2; RoundIndex++)
             {
-                PlayerState MyStatus;
+                int MyStatus;
                 if (RoundIndex == 0)
                     //首先为AI考虑
                     MyStatus = Player2Status;
                 else
                     //设身处地的为玩家着想，因为敌人最想下的位置就是AI所要考虑的
                     MyStatus = Player1Status;
-
-                //注意：设置这些比率的首要条件是2 * ChessUpLevelRate > DeadChessRate
-
-                //活棋和死棋直接的比例
-                float DeadChessRate = 0.7;
-                //主棋组设置的权值和副棋组设置的比例
-                float SecondaryGroupChessRate = 0.5;
-                //每种活棋之间的比例
-                float ChessUpLevelRate = 0.4;
-                //考虑AI优先的额外权值
-                float AIFirstScore = 5;
 
                 //限制了一半的方向
                 //因为要在一个位置上判断两个方向
@@ -180,7 +182,7 @@ QPoint Widget::ComputerPutChess(void)
                                 }
                                 //设置分数
                                 //如果当前方向的第一个位置是活的，就表明有副棋组的存在
-                                if (SecondaryGroupStartIsLive)
+                                if (SecondaryGroupStartIsLive && SecondaryGroupChessCount > 0)
                                 {
                                     switch(SecondaryGroupChessCount)
                                     {
@@ -202,10 +204,15 @@ QPoint Widget::ComputerPutChess(void)
                                         else
                                             PositionScore[X][Y] += DeadThreeChessScore * SecondaryGroupChessRate;
                                         break;
-                                    case 4:
+                                    //四子及以上的
+                                    default:
                                         PositionScore[X][Y] += AllFourChessScore * SecondaryGroupChessRate;
                                         break;
                                     }
+
+                                    //如果现在正在为AI着想，那肯定要加多一点权值，机不为己天诛地灭！
+                                    if(MyStatus == Player2Status)
+                                        PositionScore[X][Y] += AIFirstRate * SecondaryGroupChessCount * SecondaryGroupChessRate;
 
                                 }
                                 //映射副棋组的头的状态到主棋组的头或尾的状态
@@ -239,16 +246,22 @@ QPoint Widget::ComputerPutChess(void)
                                 else if (MajorGroupStartIsLive || MajorGroupEndIsLive)
                                     PositionScore[X][Y] += DeadThreeChessScore;
                                 break;
-                            case 4:
-                                PositionScore[X][Y] += AllFourChessScore;//15625
+                            //四字及以上的
+                            default:
+                                //如果是机器已经连了四颗棋子
+                                if (MyStatus == Player2Status)
+                                    //设置更高优先级
+                                    PositionScore[X][Y] += AllFourChessScore / ChessUpLevelRate;
+                                else
+                                    PositionScore[X][Y] += AllFourChessScore;
                                 break;
                             }
+                            //如果现在正在为AI着想，那肯定要加多一点权值，机不为己天诛地灭！
+                            if(MyStatus == Player2Status)
+                                PositionScore[X][Y] += AIFirstRate * MajorGroupChessCount;
                         }
                     }
                 }
-                //如果现在正在为AI着想，那肯定要加多一点权值，机不为己天诛地灭！
-                if(MyStatus == Player2Status)
-                    PositionScore[X][Y] += AIFirstScore;
             }
         }
     }
@@ -271,8 +284,8 @@ QPoint Widget::ComputerPutChess(void)
                 MaxPosition.append(QPoint(i, j));
         }
     }
-    //如果有多个最大权值，那就随机选择
-    qsrand(time(nullptr));
+
     //下棋
     return MaxPosition.at(qrand() % MaxPosition.count());
 }
+
