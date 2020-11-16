@@ -12,7 +12,7 @@ AI也是我的第一次尝试，所以肯定会存在代码长但不太智能的
 
 该游戏支持AI对战与联机对战，同时还支持悔棋操作。
 
-下载链接 - [release - 2.0](https://github.com/Kiprey/FiveChessGame/releases/tag/1.0)
+下载链接 - [release - 2.0](https://github.com/Kiprey/FiveChessGame/releases/tag/2.0)
 
 ## 后记
 
